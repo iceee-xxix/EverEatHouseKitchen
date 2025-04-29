@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use App\Events\OrderCreated;
 use App\Http\Controllers\Controller;
 use App\Models\Categories;
+use App\Models\LogStock;
 use App\Models\Menu;
+use App\Models\MenuStock;
 use App\Models\Orders;
 use App\Models\OrdersDetails;
 use App\Models\Promotion;
+use App\Models\Stock;
 use App\Models\User;
 use App\Models\UsersAddress;
 use Illuminate\Http\Request;
@@ -75,7 +78,7 @@ class Delivery extends Controller
                 if ($info != null) {
                     $order = new Orders();
                     $order->users_id = Session::get('user')->id;
-                    $order->address_id = Session::get('user')->id;
+                    $order->address_id = $info->id;
                     $order->total = $total;
                     $order->remark = $remark;
                     $order->status = 1;
@@ -87,7 +90,23 @@ class Delivery extends Controller
                             $orderdetail->option_id = $rs['option'];
                             $orderdetail->quantity = $rs['qty'];
                             $orderdetail->price = $rs['price'];
-                            $orderdetail->save();
+                            if ($orderdetail->save()) {
+                                $menuStock = MenuStock::where('menu_option_id', $rs['option'])->get();
+                                foreach ($menuStock as $stock_rs) {
+                                    $stock = Stock::find($stock_rs->stock_id);
+                                    $stock->amount = $stock->amount - ($stock_rs->amount * $rs['qty']);
+                                    if ($stock->save()) {
+                                        $log_stock = new LogStock();
+                                        $log_stock->stock_id = $stock_rs->stock_id;
+                                        $log_stock->order_id = $order->id;
+                                        $log_stock->menu_option_id = $rs['option'];
+                                        $log_stock->old_amount = $stock->amount;
+                                        $log_stock->amount = ($stock_rs->amount * $rs['qty']);
+                                        $log_stock->status = 2;
+                                        $log_stock->save();
+                                    }
+                                }
+                            }
                         }
                     }
                     event(new OrderCreated(['📦 มีออเดอร์ใหม่']));
@@ -176,6 +195,7 @@ class Delivery extends Controller
         $info = UsersAddress::find($id);
         return view('delivery.editaddress', compact('info'));
     }
+
     public function usersSave(Request $request)
     {
         $input = $request->post();
@@ -187,5 +207,42 @@ class Delivery extends Controller
             return redirect()->route('delivery.users')->with('success', 'เพิ่มที่อยู่เรียบร้อยแล้ว');
         }
         return redirect()->route('delivery.users')->with('error', 'ไม่สามารถเพิ่มที่อยู่ได้');
+    }
+
+    public function listorder()
+    {
+        $orderlist = [];
+        if (Session::get('user')) {
+            $orderlist = Orders::select('orders.*', 'users.name', 'users.tel')
+                ->where('users_id', Session::get('user')->id)
+                ->leftJoin('rider_sends', 'orders.id', '=', 'rider_sends.order_id')
+                ->leftJoin('users', 'rider_sends.rider_id', '=', 'users.id')
+                ->get();
+        }
+        return view('delivery.order', compact('orderlist'));
+    }
+
+    public function listOrderDetail(Request $request)
+    {
+        $orders = OrdersDetails::select('menu_id')
+            ->where('order_id', $request->input('id'))
+            ->groupBy('menu_id')
+            ->get();
+
+        if (count($orders) > 0) {
+            $info = '';
+            foreach ($orders as $key => $value) {
+                $order = OrdersDetails::where('order_id', $request->input('id'))
+                    ->where('menu_id', $value->menu_id)
+                    ->with('menu', 'option')
+                    ->get();
+                $info .= '<div class="card text-white bg-primary mb-3"><div class="card-body"><h5 class="card-title text-white">' . $order[0]['menu']->name . '</h5><p class="card-text">';
+                foreach ($order as $rs) {
+                    $info .= '' . $rs['menu']->name . ' (' . $rs['option']->type . ') จำนวน ' . $rs->quantity . ' ราคา ' . ($rs->quantity * $rs->price) . ' บาท <br>';
+                }
+                $info .= '</p></div></div>';
+            }
+        }
+        echo $info;
     }
 }

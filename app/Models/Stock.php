@@ -4,13 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Orders extends Model
+class Stock extends Model
 {
     use HasFactory;
+    use SoftDeletes;
 
-    public function orderdetail()
-    {
-        return $this->hasMany(OrdersDetails::class, 'order_id');
-    }
 }
