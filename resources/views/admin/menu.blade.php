@@ -46,12 +46,12 @@ $config = Config::first();
                 <div data-i18n="Analytics">จัดการโต้ะ</div>
             </a>
         </li>
-        <!-- <li class="menu-item {{ ($function_key == 'rider') ? 'active' : '' }}">
+        <li class="menu-item {{ ($function_key == 'rider') ? 'active' : '' }}">
             <a href="{{route('rider')}}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-cycling"></i>
                 <div data-i18n="Analytics">ไรเดอร์</div>
             </a>
-        </li> -->
+        </li>
         <li class="menu-header small text-uppercase"><span class="menu-header-text">อาหาร</span></li>
         <li class="menu-item {{ ($function_key == 'category') ? 'active' : '' }}">
             <a href="{{route('category')}}" class="menu-link">
@@ -70,6 +70,19 @@ $config = Config::first();
             <a href="{{route('stock')}}" class="menu-link">
                 <i class="menu-icon tf-icons bx bxs-component"></i>
                 <div data-i18n="Basic">รายการสต็อก</div>
+            </a>
+        </li>
+        <li class="menu-header small text-uppercase"><span class="menu-header-text">รายจ่าย</span></li>
+        <li class="menu-item {{ ($function_key == 'category_expenses') ? 'active' : '' }}">
+            <a href="{{route('category_expenses')}}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-collection"></i>
+                <div data-i18n="Basic">หมวดหมู่</div>
+            </a>
+        </li>
+        <li class="menu-item {{ ($function_key == 'expenses') ? 'active' : '' }}">
+            <a href="{{route('expenses')}}" class="menu-link">
+                <i class="menu-icon tf-icons bx bxs-dollar-circle"></i>
+                <div data-i18n="Basic">รายจ่ายทั้งหมด</div>
             </a>
         </li>
         @elseif(Session::get('user')->is_rider == 1)
